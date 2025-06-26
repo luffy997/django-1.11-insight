@@ -55,6 +55,7 @@ class Command(BaseCommand):
 
     def execute(self, *args, **options):
         if options['no_color']:
+            # django处理请求，本质上还是先到WSGIRequest，所以要自己处理服务，还是得用WSGIRequestHandler
             # We rely on the environment because it's currently the only
             # way to reach WSGIRequestHandler. This seems an acceptable
             # compromise considering `runserver` runs indefinitely.
@@ -65,6 +66,7 @@ class Command(BaseCommand):
         """
         Returns the default WSGI handler for the runner.
         """
+        # 返回WSGIApplication对象，这是django把请求字典转成request对象的入口
         return get_internal_wsgi_application()
 
     def handle(self, *args, **options):
