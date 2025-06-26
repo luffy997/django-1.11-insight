@@ -20,7 +20,8 @@ ENVIRONMENT_VARIABLE = "DJANGO_SETTINGS_MODULE"
 class LazySettings(LazyObject):
     """
     A lazy proxy for either global Django settings or a custom settings object.
-    The user can manually configure settings prior to using them. Otherwise,
+    # 全局Django设置或自定义设置对象的懒代理<延迟加载>
+    The user can manually configure settings prior(之前) to using them. Otherwise,
     Django uses the settings module pointed to by DJANGO_SETTINGS_MODULE.
     """
     def _setup(self, name=None):
@@ -29,6 +30,15 @@ class LazySettings(LazyObject):
         is used the first time we need any settings at all, if the user has not
         previously configured the settings manually.
         """
+        # ENVIRONMENT_VARIABLE = DJANGO_SETTINGS_MODULE
+        # 从环境变量中获取设置模块，指定设置模块的路径
+        """
+        import os
+        import django
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE','asto.settings')
+        django.setup()        
+        """
+
         settings_module = os.environ.get(ENVIRONMENT_VARIABLE)
         if not settings_module:
             desc = ("setting %s" % name) if name else "settings"
@@ -199,3 +209,29 @@ class UserSettingsHolder(object):
 
 
 settings = LazySettings()
+'''
+1. 访问 settings.DEBUG
+   ↓
+2. 触发 __getattr__('DEBUG')
+   ↓
+3. 检查 if self._wrapped is empty:  # True（第一次）
+   ↓
+4. 调用 self._setup('DEBUG')
+   ↓
+5. 获取环境变量: os.environ.get('DJANGO_SETTINGS_MODULE')
+   ↓
+6. 检查环境变量是否存在
+   ├─ 不存在 → 抛出 ImproperlyConfigured 异常
+   └─ 存在 → 继续
+   ↓
+7. 创建 Settings 对象: self._wrapped = Settings(settings_module)
+   ↓
+8. 返回 getattr(self._wrapped, 'DEBUG')
+
+这种设计的巧妙之处：
+延迟加载：只有真正需要时才加载配置
+错误处理：环境变量不存在时给出明确错误
+性能优化：后续访问直接从缓存获取
+反射机制：动态获取配置，支持任意配置项
+您的理解非常到位！这就是Django配置系统的核心机制：环境变量驱动 + 懒加载 + 反射获取。
+'''

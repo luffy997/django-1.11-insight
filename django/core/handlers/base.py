@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import unicode_literals
 
 import logging
@@ -25,6 +26,7 @@ logger = logging.getLogger('django.request')
 class BaseHandler(object):
 
     def __init__(self):
+        # request,view,template_response,response,exception 中间件的五个方法
         self._request_middleware = None
         self._view_middleware = None
         self._template_response_middleware = None
@@ -77,6 +79,7 @@ class BaseHandler(object):
         else:
             handler = convert_exception_to_response(self._get_response)
             for middleware_path in reversed(settings.MIDDLEWARE):
+                # 拿到包对象 django.middleware.security.SecurityMiddleware -> middleware=SecurityMiddleware
                 middleware = import_string(middleware_path)
                 try:
                     mw_instance = middleware(handler)

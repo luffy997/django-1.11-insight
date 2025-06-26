@@ -1,3 +1,4 @@
+# coding=utf-8
 import sys
 import threading
 import warnings
@@ -62,18 +63,24 @@ class Apps(object):
         This method imports each application module and then each model module.
 
         It is thread safe and idempotent, but not reentrant.
+
+        加载应用程序配置和模型。
+        此方法导入每个应用模块，然后导入每个模型模块。
+        该方法是线程安全和幂等的，但不是可重入的。
         """
         if self.ready:
             return
 
         # populate() might be called by two threads in parallel on servers
         # that create threads before initializing the WSGI callable.
+        # populate() 可能会被两个线程并行调用，在服务器上，这些线程在初始化 WSGI 可调用对象之前创建。
         with self._lock:
             if self.ready:
                 return
 
             # app_config should be pristine, otherwise the code below won't
             # guarantee that the order matches the order in INSTALLED_APPS.
+            # `app_config` 应该是原始的，否则下面的代码将无法保证顺序与 `INSTALLED_APPS` 中的顺序匹配。
             if self.app_configs:
                 raise RuntimeError("populate() isn't reentrant")
 
@@ -83,6 +90,8 @@ class Apps(object):
                     app_config = entry
                 else:
                     app_config = AppConfig.create(entry)
+                # 通过app的label（app的name, app_name.rpartition(".")[2]）字段进行去重
+                # app_configs是一个OrderedDict
                 if app_config.label in self.app_configs:
                     raise ImproperlyConfigured(
                         "Application labels aren't unique, "
@@ -100,7 +109,7 @@ class Apps(object):
                 raise ImproperlyConfigured(
                     "Application names aren't unique, "
                     "duplicates: %s" % ", ".join(duplicates))
-
+            # 上面这些主要是校验导入的app是否有重复导入的情况，或者重名，加了线程锁，所以的线程安全的
             self.apps_ready = True
 
             # Phase 2: import models modules.

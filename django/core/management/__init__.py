@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import unicode_literals
 
 import os
@@ -35,7 +36,7 @@ def load_command_class(app_name, name):
     """
     Given a command name and an application name, returns the Command
     class instance. All errors raised by the import process
-    (ImportError, AttributeError) are allowed to propagate.
+    (ImportError, AttributeError) are allowed to propagate(传播).
     """
     module = import_module('%s.management.commands.%s' % (app_name, name))
     return module.Command()
@@ -132,7 +133,7 @@ def call_command(command_name, *args, **options):
 
 class ManagementUtility(object):
     """
-    Encapsulates the logic of the django-admin and manage.py utilities.
+    Encapsulates(封装) the logic(逻辑) of the django-admin and manage.py utilities.
     """
     def __init__(self, argv=None):
         self.argv = argv or sys.argv[:]
@@ -176,8 +177,9 @@ class ManagementUtility(object):
 
     def fetch_command(self, subcommand):
         """
-        Tries to fetch the given subcommand, printing a message with the
-        appropriate command called from the command line (usually
+        工厂模式->根据命令名称动态创建命令对象
+        Tries to fetch(获取) the given subcommand, printing a message with the
+        appropriate(适当) command called from the command line (usually
         "django-admin" or "manage.py") if it can't be found.
         """
         # Get commands outside of try block to prevent swallowing exceptions
@@ -310,7 +312,8 @@ class ManagementUtility(object):
 
         if settings.configured:
             # Start the auto-reloading dev server even if the code is broken.
-            # The hardcoded condition is a code smell but we can't rely on a
+            # 即使代码有错误，也要启动自动重载的开发服务器。
+            # The hardcoded condition(硬编码) is a code smell(异味) but we can't rely on a
             # flag on the command class because we haven't located it yet.
             if subcommand == 'runserver' and '--noreload' not in self.argv:
                 try:
@@ -323,7 +326,8 @@ class ManagementUtility(object):
                     apps.app_configs = OrderedDict()
                     apps.apps_ready = apps.models_ready = apps.ready = True
 
-                    # Remove options not compatible with the built-in runserver
+                    # Remove options not compatible(兼容) with the built-in(内置) runserver
+                    #
                     # (e.g. options for the contrib.staticfiles' runserver).
                     # Changes here require manually testing as described in
                     # #27522.
@@ -337,7 +341,7 @@ class ManagementUtility(object):
                 django.setup()
 
         self.autocomplete()
-
+        # 内置的命令就help和version
         if subcommand == 'help':
             if '--commands' in args:
                 sys.stdout.write(self.main_help_text(commands_only=True) + '\n')

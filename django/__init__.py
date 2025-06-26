@@ -24,4 +24,12 @@ def setup(set_prefix=True):
         set_script_prefix(
             '/' if settings.FORCE_SCRIPT_NAME is None else force_text(settings.FORCE_SCRIPT_NAME)
         )
+    # 加载settings.INSTALLED_APPS中的应用程序配置和模型
+    # 1. 创建AppConfig对象
+    # 2. 将AppConfig对象添加到apps.app_configs中
+    # 3. 将AppConfig对象的apps属性设置为apps
+    # 4. 将AppConfig对象的models属性设置为models
+    # 5. 将AppConfig对象的ready方法设置为ready
+    # 把app注册到一个OrderedDict中，key是app的label，value是AppConfig对象，保证顺序，注册前还
+    # 做了重复性校验，用线程锁保证多个线程同时注册时不会重复注册
     apps.populate(settings.INSTALLED_APPS)
