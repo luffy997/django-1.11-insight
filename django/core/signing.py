@@ -75,6 +75,8 @@ def b64_decode(s):
 
 
 def base64_hmac(salt, value, key):
+    # 使用salted_hmac()函数生成一个HMAC-SHA1的签名。
+    # 然后使用b64_encode()函数将签名转换为base64编码。
     return b64_encode(salted_hmac(salt, value, key).digest())
 
 
@@ -100,15 +102,16 @@ def dumps(obj, key=None, salt='django.core.signing', serializer=JSONSerializer, 
     """
     Returns URL-safe, sha1 signed base64 compressed JSON string. If key is
     None, settings.SECRET_KEY is used instead.
+    返回一个URL安全的，sha1签名的base64压缩的JSON字符串。如果key为None，则使用settings.SECRET_KEY。
 
     If compress is True (not the default) checks if compressing using zlib can
-    save some space. Prepends a '.' to signify compression. This is included
-    in the signature, to protect against zip bombs.
+    save some space. Prepends(前言，前缀) a '.' to signify compression. This is included
+    in the signature, to protect against zip bombs(防止压缩炸弹).
 
     Salt can be used to namespace the hash, so that a signed string is
     only valid for a given namespace. Leaving this at the default
     value or re-using a salt value across different parts of your
-    application without good cause is a security risk.
+    application without good cause is a security risk.(没有充分的利用认为是安全风险)   
 
     The serializer is expected to return a bytestring.
     """
@@ -132,11 +135,14 @@ def dumps(obj, key=None, salt='django.core.signing', serializer=JSONSerializer, 
 def loads(s, key=None, salt='django.core.signing', serializer=JSONSerializer, max_age=None):
     """
     Reverse of dumps(), raises BadSignature if signature fails.
+    dumps()的反向操作，如果签名失败，则抛出BadSignature异常。
 
     The serializer is expected to accept a bytestring.
     """
     # TimestampSigner.unsign always returns unicode but base64 and zlib
+    # 解码器总是返回unicode，但是base64和zlib操作的是字节。
     # compression operate on bytes.
+    # 因此，需要将unsign()返回的unicode转换为字节。
     base64d = force_bytes(TimestampSigner(key, salt=salt).unsign(s, max_age=max_age))
     decompress = False
     if base64d[:1] == b'.':
@@ -195,6 +201,7 @@ class TimestampSigner(Signer):
         """
         Retrieve original value and check it wasn't signed more
         than max_age seconds ago.
+         获取原始值并检查是否超过max_age秒。
         """
         result = super(TimestampSigner, self).unsign(value)
         value, timestamp = result.rsplit(self.sep, 1)
