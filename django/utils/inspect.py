@@ -83,8 +83,8 @@ def get_func_full_args(func):
 
 def func_accepts_kwargs(func):
     if six.PY2:
-        # Not all callables are inspectable with getargspec, so we'll
-        # try a couple different ways but in the end fall back on assuming
+        # Not all callables are inspectable(可检查的) with getargspec, so we'll
+        # try a couple different ways but in the end fall back on assuming(假设 )
         # it is -- we don't want to prevent registration of valid but weird
         # callables.
         try:

@@ -42,23 +42,25 @@ class Signal(object):
         providing_args
             A list of the arguments this signal can pass along in a send() call.
         """
-        self.receivers = []
+        self.receivers = []  # 存储所有的接收器
         if providing_args is None:
             providing_args = []
         self.providing_args = set(providing_args)
-        self.lock = threading.Lock()
+        self.lock = threading.Lock()  # 线程锁
         self.use_caching = use_caching
         # For convenience we create empty caches even if they are not used.
         # A note about caching: if use_caching is defined, then for each
         # distinct sender we cache the receivers that sender has in
         # 'sender_receivers_cache'. The cache is cleaned when .connect() or
         # .disconnect() is called and populated on send().
-        self.sender_receivers_cache = weakref.WeakKeyDictionary() if use_caching else {}
+        self.sender_receivers_cache = weakref.WeakKeyDictionary() if use_caching else {} # 弱引用缓存
         self._dead_receivers = False
 
     def connect(self, receiver, sender=None, weak=True, dispatch_uid=None):
         """
         Connect receiver to sender for signal.
+        用途：将接收器连接到信号
+        使用场景：当需要将一个函数或方法连接到信号时，可以使用connect方法
 
         Arguments:
 
@@ -109,8 +111,9 @@ class Signal(object):
             receiver_object = receiver
             # Check for bound methods
             if hasattr(receiver, '__self__') and hasattr(receiver, '__func__'):
-                ref = WeakMethod
-                receiver_object = receiver.__self__
+                ref = WeakMethod   # 使用WeakMethod而不是weakref.ref，绑定方法是临时对象，会立即被回收
+                # 使用WeakMethod，它能正确处理绑定方法，而weakref.ref不能
+                receiver_object = receiver.__self__  # 获取实例对象
             if six.PY3:
                 receiver = ref(receiver)
                 weakref.finalize(receiver_object, self._remove_receiver)
@@ -124,6 +127,11 @@ class Signal(object):
                     break
             else:
                 self.receivers.append((lookup_key, receiver))
+                # 清空缓存字典是为了保证数据一致性：
+                # 问题：接收器列表变化后，缓存可能包含过时信息
+                # 解决：简单粗暴地清空所有缓存
+                # 代价：下次查找时需要重建缓存（性能开销很小）
+                # 收益：确保缓存与实际状态完全一致
             self.sender_receivers_cache.clear()
 
     def disconnect(self, receiver=None, sender=None, weak=None, dispatch_uid=None):
@@ -174,6 +182,9 @@ class Signal(object):
         If any receiver raises an error, the error propagates back through send,
         terminating the dispatch loop. So it's possible that all receivers
         won't be called if an error is raised.
+        用途：发送信号到所有连接的接收器
+        使用场景：当需要发送信号到所有连接的接收器时，可以使用send方法
+        注意：如果接收器抛出异常，信号发送会终止，不会继续发送给其他接收器
 
         Arguments:
 
