@@ -1,3 +1,4 @@
+# coding=utf-8
 import collections
 import warnings
 from math import ceil
@@ -29,8 +30,8 @@ class Paginator(object):
                  allow_empty_first_page=True):
         self.object_list = object_list
         self._check_object_list_is_ordered()
-        self.per_page = int(per_page)
-        self.orphans = int(orphans)
+        self.per_page = int(per_page)  # 每页显示多少条数据
+        self.orphans = int(orphans)    # 孤立的条目数
         self.allow_empty_first_page = allow_empty_first_page
 
     def validate_number(self, number):
@@ -53,6 +54,7 @@ class Paginator(object):
     def page(self, number):
         """
         Returns a Page object for the given 1-based page number.
+        返回一个Page对象，表示指定页码的页面数据
         """
         number = self.validate_number(number)
         bottom = (number - 1) * self.per_page
@@ -74,23 +76,29 @@ class Paginator(object):
     def count(self):
         """
         Returns the total number of objects, across all pages.
+        返回所有对象的总数
         """
         try:
+            # 如果object_list是一个QuerySet，则调用其count方法
             return self.object_list.count()
         except (AttributeError, TypeError):
             # AttributeError if object_list has no count() method.
             # TypeError if object_list.count() requires arguments
             # (i.e. is of type list).
+            # 如果object_list不是QuerySet，则使用len函数计算长度，降级处理
             return len(self.object_list)
 
     @cached_property
     def num_pages(self):
         """
         Returns the total number of pages.
+        返回总页数
         """
         if self.count == 0 and not self.allow_empty_first_page:
             return 0
+        # 总记录数，减去孤立的条目数，确保至少有一页
         hits = max(1, self.count - self.orphans)
+        # 计算总页数，使用ceil函数向上取整
         return int(ceil(hits / float(self.per_page)))
 
     @property
@@ -134,6 +142,7 @@ class Page(collections.Sequence):
             raise TypeError
         # The object_list is converted to a list so that if it was a QuerySet
         # it won't be a database hit per __getitem__.
+         # 支持索引和切片访问
         if not isinstance(self.object_list, list):
             self.object_list = list(self.object_list)
         return self.object_list[index]
