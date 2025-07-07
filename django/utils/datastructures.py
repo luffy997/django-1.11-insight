@@ -49,6 +49,7 @@ class MultiValueDict(dict):
     """
     A subclass of dictionary customized to handle multiple values for the
     same key.
+    一个字典的子类，专门用于处理同一个键的多个值。
 
     >>> d = MultiValueDict({'name': ['Adrian', 'Simon'], 'position': ['Developer']})
     >>> d['name']
@@ -63,9 +64,11 @@ class MultiValueDict(dict):
     'nonexistent'
     >>> d.setlist('lastname', ['Holovaty', 'Willison'])
 
-    This class exists to solve the irritating problem raised by cgi.parse_qs,
+    This class exists to solve the irritating<令人讨厌的> problem raised by cgi.parse_qs,
     which returns a list for every key, even though most Web forms submit
     single name-value pairs.
+    这个类存在的目的是解决cgi.parse_qs引发的问题，
+    即使大多数Web表单提交单个name-value对，它也会返回一个列表。
     """
     def __init__(self, key_to_list_mapping=()):
         super(MultiValueDict, self).__init__(key_to_list_mapping)

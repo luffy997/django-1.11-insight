@@ -59,6 +59,7 @@ else:
 def parse_cookie(cookie):
     """
     Return a dictionary parsed from a `Cookie:` header string.
+    返回一个字典，从`Cookie:`头字符串解析而来。
     """
     cookiedict = {}
     if six.PY2:
@@ -68,10 +69,12 @@ def parse_cookie(cookie):
             key, val = chunk.split(str('='), 1)
         else:
             # Assume an empty name per
+            # 假设一个空的名称
             # https://bugzilla.mozilla.org/show_bug.cgi?id=169091
             key, val = str(''), chunk
         key, val = key.strip(), val.strip()
         if key or val:
             # unquote using Python's algorithm.
+            # 使用Python的算法解码cookie值
             cookiedict[key] = http_cookies._unquote(val)
     return cookiedict

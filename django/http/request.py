@@ -223,7 +223,7 @@ class HttpRequest(object):
         """
         Sets the encoding used for GET/POST accesses. If the GET or POST
         dictionary has already been created, it is removed and recreated on the
-        next access (so that it is decoded correctly).
+        next access (so that it is decoded correctly(正确地)).
         """
         self._encoding = val
         if hasattr(self, 'GET'):
@@ -232,6 +232,12 @@ class HttpRequest(object):
             del self._post
 
     def _initialize_handlers(self):
+        """
+        初始化上传处理程序
+        FILE_UPLOAD_HANDLERS 设置上传处理程序
+            ["django.core.files.uploadhandler.MemoryFileUploadHandler",
+            "django.core.files.uploadhandler.TemporaryFileUploadHandler"]
+        """
         self._upload_handlers = [uploadhandler.load_handler(handler, self)
                                  for handler in settings.FILE_UPLOAD_HANDLERS]
 
@@ -355,16 +361,21 @@ class HttpRequest(object):
 class QueryDict(MultiValueDict):
     """
     A specialized MultiValueDict which represents a query string.
+    一个专门用于表示查询字符串的MultiValueDict类。
 
     A QueryDict can be used to represent GET or POST data. It subclasses
     MultiValueDict since keys in such data can be repeated, for instance
     in the data from a form with a <select multiple> field.
+    由于查询字符串中的键可以重复，因此QueryDict继承自MultiValueDict。
+    例如，一个表单中有一个<select multiple>字段，那么查询字符串中就会包含多个相同的键。
 
-    By default QueryDicts are immutable, though the copy() method
+    By default QueryDicts are immutable<不可变的>, though the copy() method
     will always return a mutable copy.
+    默认情况下，QueryDict是不可变的，但copy()方法总是返回一个可变的副本。
 
     Both keys and values set on this class are converted from the given encoding
     (DEFAULT_CHARSET by default) to unicode.
+    键和值都使用给定的编码（默认是DEFAULT_CHARSET）转换为unicode。
     """
 
     # These are both reset in __init__, but is specified here at the class
@@ -551,6 +562,7 @@ def split_domain_port(host):
         return '', ''
 
     if host[-1] == ']':
+        # IPv4：http://192.168.1.1:8000 IPv6：http://[2001:0db8::1]:8000
         # It's an IPv6 address without a port.
         return host, ''
     bits = host.rsplit(':', 1)

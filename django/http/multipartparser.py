@@ -55,6 +55,7 @@ class MultiPartParser(object):
     def __init__(self, META, input_data, upload_handlers, encoding=None):
         """
         Initialize the MultiPartParser object.
+        初始化multipart/form-data解析器
 
         :META:
             The standard ``META`` dictionary in Django request objects.
@@ -72,6 +73,7 @@ class MultiPartParser(object):
             raise MultiPartParserError('Invalid Content-Type: %s' % content_type)
 
         # Parse the header to get the boundary to split the parts.
+        # 解析Content-Type头字符串，获取boundary边界信息
         ctypes, opts = parse_header(content_type.encode('ascii'))
         boundary = opts.get('boundary')
         if not boundary or not cgi.valid_boundary(boundary):
@@ -121,7 +123,9 @@ class MultiPartParser(object):
             return QueryDict(encoding=self._encoding), MultiValueDict()
 
         # See if any of the handlers take care of the parsing.
+        # 检查是否存在任何处理程序来处理解析。
         # This allows overriding everything if need be.
+        # 如果需要，可以覆盖所有内容。
         for handler in handlers:
             result = handler.handle_raw_input(
                 self._input_data,
@@ -139,6 +143,7 @@ class MultiPartParser(object):
         self._files = MultiValueDict()
 
         # Instantiate the parser and stream:
+        # 实例化解析器和流：
         stream = LazyStream(ChunkIter(self._input_data, self._chunk_size))
 
         # Whether or not to signal a file-completion at the beginning of the loop.
@@ -174,6 +179,7 @@ class MultiPartParser(object):
 
                 if item_type == FIELD:
                     # Avoid storing more than DATA_UPLOAD_MAX_NUMBER_FIELDS.
+                    # 避免存储超过DATA_UPLOAD_MAX_NUMBER_FIELDS的键，默认是1000
                     num_post_keys += 1
                     if (settings.DATA_UPLOAD_MAX_NUMBER_FIELDS is not None and
                             settings.DATA_UPLOAD_MAX_NUMBER_FIELDS < num_post_keys):
@@ -183,6 +189,7 @@ class MultiPartParser(object):
                         )
 
                     # Avoid reading more than DATA_UPLOAD_MAX_MEMORY_SIZE.
+                    # 避免读取超过DATA_UPLOAD_MAX_MEMORY_SIZE的字节，默认是2.5MB
                     if settings.DATA_UPLOAD_MAX_MEMORY_SIZE is not None:
                         read_size = settings.DATA_UPLOAD_MAX_MEMORY_SIZE - num_bytes_read
 
@@ -200,6 +207,7 @@ class MultiPartParser(object):
 
                     # Add two here to make the check consistent with the
                     # x-www-form-urlencoded check that includes '&='.
+                    # 添加两个字节，使检查与x-www-form-urlencoded检查一致，后者包括'&='。
                     num_bytes_read += len(field_name) + 2
                     if (settings.DATA_UPLOAD_MAX_MEMORY_SIZE is not None and
                             num_bytes_read > settings.DATA_UPLOAD_MAX_MEMORY_SIZE):
@@ -211,6 +219,8 @@ class MultiPartParser(object):
                     file_name = disposition.get('filename')
                     if file_name:
                         file_name = force_text(file_name, encoding, errors='replace')
+                        # 处理IE的文件名，早期的IE浏览器会在文件名中包含路径信息，需要清理
+                        # e.g Content-Disposition: form-data; name="upload"; filename="C:\Users\John\Documents\MyFiles\document.pdf"
                         file_name = self.IE_sanitize(unescape_entities(file_name))
                     if not file_name:
                         continue
@@ -228,6 +238,7 @@ class MultiPartParser(object):
                     try:
                         for handler in handlers:
                             try:
+                                # 调用处理程序创建新文件
                                 handler.new_file(
                                     field_name, file_name, content_type,
                                     content_length, charset, content_type_extra,
@@ -250,6 +261,7 @@ class MultiPartParser(object):
                                     remaining = len(stripped_chunk) % 4
 
                                 try:
+                                    # 解码base64数据块
                                     chunk = base64.b64decode(stripped_chunk)
                                 except Exception as e:
                                     # Since this is only a chunk, any error is an unfixable error.
@@ -258,6 +270,7 @@ class MultiPartParser(object):
 
                             for i, handler in enumerate(handlers):
                                 chunk_length = len(chunk)
+                                # 调用处理程序接收数据块
                                 chunk = handler.receive_data_chunk(chunk, counters[i])
                                 counters[i] += chunk_length
                                 if chunk is None:
@@ -305,6 +318,7 @@ class MultiPartParser(object):
 
     def IE_sanitize(self, filename):
         """Cleanup filename from Internet Explorer full paths."""
+        # 从Internet Explorer的完整路径中清理文件名
         return filename and filename[filename.rfind("\\") + 1:].strip()
 
     def _close_files(self):
@@ -319,6 +333,7 @@ class MultiPartParser(object):
 class LazyStream(six.Iterator):
     """
     The LazyStream wrapper allows one to get and "unget" bytes from a stream.
+    LazyStream包装器允许从流中获取和“unget”字节。
 
     Given a producer object (an iterator that yields bytestrings), the
     LazyStream object will support iteration, reading, and keeping a "look-back"
@@ -331,13 +346,13 @@ class LazyStream(six.Iterator):
         A producer is an iterable that returns a string each time it
         is called.
         """
-        self._producer = producer
-        self._empty = False
-        self._leftover = b''
-        self.length = length
-        self.position = 0
-        self._remaining = length
-        self._unget_history = []
+        self._producer = producer  # 数据生产者
+        self._empty = False  # 是否为空
+        self._leftover = b''  # 剩余数据
+        self.length = length  # 长度
+        self.position = 0  # 位置
+        self._remaining = length  # 剩余数据
+        self._unget_history = []  # # 归还历史，用于检测恶意请求
 
     def tell(self):
         return self.position

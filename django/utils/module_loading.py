@@ -8,7 +8,7 @@ from django.utils import six
 
 def import_string(dotted_path):
     """
-    Import a dotted module path and return the attribute/class designated by the
+    Import a dotted(附加的) module path and return the attribute/class designated by the
     last name in the path. Raise ImportError if the import failed.
     """
     try:
