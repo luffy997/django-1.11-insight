@@ -28,12 +28,15 @@ class BadHeaderError(ValueError):
     pass
 
 
-class HttpResponseBase(six.Iterator):
+class HttpResponseBase(six.Iterator): # 继承自 six.Iterator
     """
     An HTTP response base class with dictionary-accessed headers.
+    HTTP 响应基类，具有字典访问的头部。
 
     This class doesn't handle content. It should not be used directly.
     Use the HttpResponse and StreamingHttpResponse subclasses instead.
+    这个类不处理内容。它不应该直接使用。
+    使用 HttpResponse 和 StreamingHttpResponse 子类代替。
     """
 
     status_code = 200
@@ -42,8 +45,10 @@ class HttpResponseBase(six.Iterator):
         # _headers is a mapping of the lower-case name to the original case of
         # the header (required for working with legacy systems) and the header
         # value. Both the name of the header and its value are ASCII strings.
+        # _headers 是一个字典，键是头部的名称，值是头部的值。
+        # 键和值都是 ASCII 字符串。
         self._headers = {}
-        self._closable_objects = []
+        self._closable_objects = []  # 存储可关闭的对象。
         # This parameter is set by the handler. It's necessary to preserve the
         # historical behavior of request_finished.
         self._handler_class = None
@@ -113,6 +118,7 @@ class HttpResponseBase(six.Iterator):
 
     def _convert_to_charset(self, value, charset, mime_encode=False):
         """Converts headers key/value to ascii/latin-1 native strings.
+        将头部的键/值转换为 ASCII/latin-1 原生字符串。
 
         `charset` must be 'ascii' or 'latin-1'. If `mime_encode` is True and
         `value` can't be represented in the given charset, MIME-encoding
@@ -120,6 +126,7 @@ class HttpResponseBase(six.Iterator):
         """
         if not isinstance(value, (bytes, six.text_type)):
             value = str(value)
+        # 防止头部包含换行符，防止头部注入攻击
         if ((isinstance(value, bytes) and (b'\n' in value or b'\r' in value)) or
                 isinstance(value, six.text_type) and ('\n' in value or '\r' in value)):
             raise BadHeaderError("Header values can't contain newlines (got %r)" % value)
@@ -194,6 +201,7 @@ class HttpResponseBase(six.Iterator):
                 # Add one second so the date matches exactly (a fraction of
                 # time gets lost between converting to a timedelta and
                 # then the date string).
+                # 添加一秒，确保日期匹配（时间转换为 timedelta 时会丢失一些时间）
                 delta = delta + datetime.timedelta(seconds=1)
                 # Just set max_age - the max_age logic will set expires.
                 expires = None
@@ -223,6 +231,7 @@ class HttpResponseBase(six.Iterator):
             self[key] = value
 
     def set_signed_cookie(self, key, value, salt='', **kwargs):
+        # 设置签名 cookie，防止篡改
         value = signing.get_cookie_signer(salt=key + salt).sign(value)
         return self.set_cookie(key, value, **kwargs)
 
@@ -360,6 +369,7 @@ class HttpResponse(HttpResponseBase):
 class StreamingHttpResponse(HttpResponseBase):
     """
     A streaming HTTP response class with an iterator as content.
+    流式 HTTP 响应类，使用迭代器作为内容。
 
     This should only be iterated once, when the response is streamed to the
     client. However, it can be appended to or replaced with a new iterator
@@ -391,6 +401,7 @@ class StreamingHttpResponse(HttpResponseBase):
 
     def _set_streaming_content(self, value):
         # Ensure we can never iterate on "value" more than once.
+        # 确保我们永远不会迭代 "value" 超过一次。
         self._iterator = iter(value)
         if hasattr(value, 'close'):
             self._closable_objects.append(value)
@@ -406,7 +417,7 @@ class FileResponse(StreamingHttpResponse):
     """
     A streaming HTTP response class optimized for files.
     """
-    block_size = 4096
+    block_size = 4096 # 每次读取 4096 字节，4KB
 
     def _set_streaming_content(self, value):
         if hasattr(value, 'read'):
@@ -427,6 +438,7 @@ class HttpResponseRedirectBase(HttpResponse):
         super(HttpResponseRedirectBase, self).__init__(*args, **kwargs)
         self['Location'] = iri_to_uri(redirect_to)
         parsed = urlparse(force_text(redirect_to))
+        # 检查 URL 是否安全
         if parsed.scheme and parsed.scheme not in self.allowed_schemes:
             raise DisallowedRedirect("Unsafe redirect to URL with protocol '%s'" % parsed.scheme)
 
@@ -519,6 +531,7 @@ class JsonResponse(HttpResponse):
 
     def __init__(self, data, encoder=DjangoJSONEncoder, safe=True,
                  json_dumps_params=None, **kwargs):
+        # 如果 safe 为 True，并且 data 不是字典，则抛出 TypeError 异常。
         if safe and not isinstance(data, dict):
             raise TypeError(
                 'In order to allow non-dict objects to be serialized set the '

@@ -56,10 +56,14 @@ class UpdateCacheMiddleware(MiddlewareMixin):
     """
     Response-phase cache middleware that updates the cache if the response is
     cacheable.
+    响应阶段缓存中间件，如果响应是可缓存的，则更新缓存。
 
     Must be used as part of the two-part update/fetch cache middleware.
     UpdateCacheMiddleware must be the first piece of middleware in MIDDLEWARE
     so that it'll get called last during the response phase.
+    必须作为两部分更新/获取缓存中间件的一部分使用。
+    UpdateCacheMiddleware必须作为中间件列表中的第一个中间件，
+    以便在响应阶段最后调用。
     """
     def __init__(self, get_response=None):
         self.cache_timeout = settings.CACHE_MIDDLEWARE_SECONDS
@@ -80,13 +84,14 @@ class UpdateCacheMiddleware(MiddlewareMixin):
         if response.streaming or response.status_code not in (200, 304):
             return response
 
-        # Don't cache responses that set a user-specific (and maybe security
+        # Don't cache responses that set a user-(用户具体的) (and maybe security
         # sensitive) cookie in response to a cookie-less request.
+        # 不缓存可能包含用户特定信息的响应
         if not request.COOKIES and response.cookies and has_vary_header(response, 'Cookie'):
             return response
 
         # Try to get the timeout from the "max-age" section of the "Cache-
-        # Control" header before reverting to using the default cache_timeout
+        # Control" header before reverting(恢复) to using the default cache_timeout
         # length.
         timeout = get_max_age(response)
         if timeout is None:
@@ -109,10 +114,14 @@ class UpdateCacheMiddleware(MiddlewareMixin):
 class FetchFromCacheMiddleware(MiddlewareMixin):
     """
     Request-phase cache middleware that fetches a page from the cache.
+    请求阶段缓存中间件，从缓存中获取页面。
 
     Must be used as part of the two-part update/fetch cache middleware.
     FetchFromCacheMiddleware must be the last piece of middleware in MIDDLEWARE
     so that it'll get called last during the request phase.
+    必须作为两部分更新/获取缓存中间件的一部分使用。
+    FetchFromCacheMiddleware必须作为中间件列表中的最后一个中间件，
+    以便在请求阶段最后调用。
     """
     def __init__(self, get_response=None):
         self.key_prefix = settings.CACHE_MIDDLEWARE_KEY_PREFIX

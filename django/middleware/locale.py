@@ -20,6 +20,14 @@ class LocaleMiddleware(MiddlewareMixin):
     response_redirect_class = HttpResponseRedirect
 
     def process_request(self, request):
+        """
+        语言检测的优先级顺序
+        "1. URL路径中的语言前缀",     # /zh-cn/products/
+        "2. Session中的语言设置",     # session[LANGUAGE_SESSION_KEY] 
+        "3. Cookie中的语言设置",      # LANGUAGE_COOKIE_NAME
+        "4. Accept-Language请求头",  # HTTP_ACCEPT_LANGUAGE
+        "5. 默认语言设置",           # settings.LANGUAGE_CODE
+        """
         urlconf = getattr(request, 'urlconf', settings.ROOT_URLCONF)
         i18n_patterns_used, prefixed_default_language = is_language_prefix_patterns_used(urlconf)
         language = translation.get_language_from_request(request, check_path=i18n_patterns_used)
@@ -39,6 +47,7 @@ class LocaleMiddleware(MiddlewareMixin):
                 i18n_patterns_used and prefixed_default_language):
             # Maybe the language code is missing in the URL? Try adding the
             # language prefix and redirecting to that URL.
+            # 处理可能缺少语言前缀的URL
             language_path = '/%s%s' % (language, request.path_info)
             path_valid = is_valid_path(language_path, urlconf)
             path_needs_slash = (
@@ -58,7 +67,7 @@ class LocaleMiddleware(MiddlewareMixin):
                     1
                 )
                 return self.response_redirect_class(language_url)
-
+        # 设置Vary头，以便缓存根据Accept-Language头来存储内容。
         if not (i18n_patterns_used and language_from_path):
             patch_vary_headers(response, ('Accept-Language',))
         if 'Content-Language' not in response:

@@ -18,6 +18,8 @@ class SecurityMiddleware(MiddlewareMixin):
         self.get_response = get_response
 
     def process_request(self, request):
+        # 如果SECURE_SSL_REDIRECT为True，并且请求不是安全的，并且不在SECURE_REDIRECT_EXEMPT中，
+        # 则重定向到HTTPS  -> HSTS，防止被降级攻击
         path = request.path.lstrip("/")
         if (self.redirect and not request.is_secure() and
                 not any(pattern.search(path)

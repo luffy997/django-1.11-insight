@@ -10,8 +10,9 @@ re_accepts_gzip = re.compile(r'\bgzip\b')
 class GZipMiddleware(MiddlewareMixin):
     """
     This middleware compresses content if the browser allows gzip compression.
-    It sets the Vary header accordingly, so that caches will base their storage
+    It sets the Vary header accordingly（因此）, so that caches will base their storage
     on the Accept-Encoding header.
+    它设置Vary头，以便缓存根据Accept-Encoding头来存储内容。
     """
     def process_response(self, request, response):
         # It's not worth attempting to compress really short responses.

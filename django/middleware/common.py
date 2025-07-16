@@ -29,9 +29,13 @@ class CommonMiddleware(MiddlewareMixin):
               appending a slash at the end. If this new URL is found in
               urlpatterns, then an HTTP-redirect is returned to this new URL;
               otherwise the initial URL is processed as usual.
+          - 如果APPEND_SLASH为True，并且初始URL不以斜杠结尾，并且不在urlpatterns中，
+            则将斜杠添加到URL末尾。如果这个新的URL在urlpatterns中，
+            则返回一个HTTP-redirect到这个新的URL；否则，初始URL被处理为通常的方式。
 
           This behavior can be customized by subclassing CommonMiddleware and
           overriding the response_redirect_class attribute.
+          - 这个行为可以被自定义，通过继承CommonMiddleware并重写response_redirect_class属性。
 
         - ETags: If the USE_ETAGS setting is set, ETags will be calculated from
           the entire page content and Not Modified responses will be returned
@@ -53,7 +57,7 @@ class CommonMiddleware(MiddlewareMixin):
                 if user_agent_regex.search(request.META['HTTP_USER_AGENT']):
                     raise PermissionDenied('Forbidden user agent')
 
-        # Check for a redirect based on settings.PREPEND_WWW
+        # Check for a redirect based on settings.PREPEND_WWW PREPEND_WWW(预先)
         host = request.get_host()
         must_prepend = settings.PREPEND_WWW and host and not host.startswith('www.')
         redirect_url = ('%s://www.%s' % (request.scheme, host)) if must_prepend else ''
@@ -71,7 +75,7 @@ class CommonMiddleware(MiddlewareMixin):
 
     def should_redirect_with_slash(self, request):
         """
-        Return True if settings.APPEND_SLASH is True and appending a slash to
+        Return True if settings.APPEND_SLASH(默认True) is True and appending a slash to
         the request path turns an invalid path into a valid one.
         """
         if settings.APPEND_SLASH and not request.path_info.endswith('/'):
@@ -109,6 +113,8 @@ class CommonMiddleware(MiddlewareMixin):
 
         When the status code of the response is 404, it may redirect to a path
         with an appended slash if should_redirect_with_slash() returns True.
+        - 当响应的状态码为404时，如果should_redirect_with_slash()返回True，
+          则可能重定向到带有附加斜杠的路径。
         """
         # If the given URL is "Not Found", then check if we should redirect to
         # a path with a slash appended.
@@ -153,6 +159,7 @@ class BrokenLinkEmailsMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
         """
         Send broken link emails for relevant 404 NOT FOUND responses.
+        - 发送404错误链接的电子邮件。
         """
         if response.status_code == 404 and not settings.DEBUG:
             domain = request.get_host()

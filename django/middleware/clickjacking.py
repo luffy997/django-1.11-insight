@@ -1,5 +1,6 @@
 """
 Clickjacking Protection Middleware.
+点击劫持保护中间件
 
 This module provides a middleware that implements protection against a
 malicious site loading resources from your site in a hidden frame.
@@ -49,5 +50,8 @@ class XFrameOptionsMiddleware(MiddlewareMixin):
 
         This method can be overridden if needed, allowing it to vary based on
         the request or response.
+        默认使用SAMEORIGIN 只有同源网页能嵌套
+        DENY是所有 <iframe> 都禁止嵌套这个页面（最严格）
+        ALLOW-FROM uri 只允许从指定uri的页面嵌套这个页面 （现代浏览器基本不支持）
         """
         return getattr(settings, 'X_FRAME_OPTIONS', 'SAMEORIGIN').upper()

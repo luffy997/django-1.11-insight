@@ -66,6 +66,7 @@ class BaseHandler(object):
                             logger.debug('MiddlewareNotUsed: %r', middleware_path)
                     continue
 
+                # django 中间件的5个方法
                 if hasattr(mw_instance, 'process_request'):
                     self._request_middleware.append(mw_instance.process_request)
                 if hasattr(mw_instance, 'process_view'):

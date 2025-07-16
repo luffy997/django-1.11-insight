@@ -51,10 +51,13 @@ def _salt_cipher_secret(secret):
     """
     Given a secret (assumed to be a string of CSRF_ALLOWED_CHARS), generate a
     token by adding a salt and using it to encrypt the secret.
+    - 给定一个secret(假设是一个CSRF_ALLOWED_CHARS的字符串)，生成一个token，
+      通过添加一个salt并使用它来加密secret。
     """
     salt = _get_new_csrf_string()
     chars = CSRF_ALLOWED_CHARS
     pairs = zip((chars.index(x) for x in secret), (chars.index(x) for x in salt))
+    # 将chars的索引和salt的索引相加，然后对chars的长度取模，得到一个新的索引，
     cipher = ''.join(chars[(x + y) % len(chars)] for x, y in pairs)
     return salt + cipher
 
@@ -64,6 +67,7 @@ def _unsalt_cipher_token(token):
     Given a token (assumed to be a string of CSRF_ALLOWED_CHARS, of length
     CSRF_TOKEN_LENGTH, and that its first half is a salt), use it to decrypt
     the second half to produce the original secret.
+
     """
     salt = token[:CSRF_SECRET_LENGTH]
     token = token[CSRF_SECRET_LENGTH:]
@@ -80,7 +84,9 @@ def _get_new_csrf_token():
 def get_token(request):
     """
     Returns the CSRF token required for a POST form. The token is an
-    alphanumeric value. A new token is created if one is not already set.
+    alphanumeric(含字母数字的) value. A new token is created if one is not already set.
+    - 返回一个CSRF token，用于POST表单。token是一个字母数字值。
+       如果token不存在，则创建一个新的token。
 
     A side effect of calling this function is to make the csrf_protect
     decorator and the CsrfViewMiddleware add a CSRF cookie and a 'Vary: Cookie'
@@ -212,13 +218,14 @@ class CsrfViewMiddleware(MiddlewareMixin):
 
         # Wait until request.META["CSRF_COOKIE"] has been manipulated before
         # bailing out, so that get_token still works
+        # 检查装饰器的方法 getattr(callback, '装饰器名称', False):
         if getattr(callback, 'csrf_exempt', False):
             return None
 
         # Assume that anything not defined as 'safe' by RFC7231 needs protection
         if request.method not in ('GET', 'HEAD', 'OPTIONS', 'TRACE'):
             if getattr(request, '_dont_enforce_csrf_checks', False):
-                # Mechanism to turn off CSRF checks for test suite.
+                # Mechanism(机制) to turn off CSRF checks for test suite(测试套件).
                 # It comes after the creation of CSRF cookies, so that
                 # everything else continues to work exactly the same
                 # (e.g. cookies are sent, etc.), but before any
@@ -226,6 +233,7 @@ class CsrfViewMiddleware(MiddlewareMixin):
                 return self._accept(request)
 
             if request.is_secure():
+                # 讲了为什么HTTPS需要Referer检查的原因
                 # Suppose user visits http://example.com/
                 # An active network attacker (man-in-the-middle, MITM) sends a
                 # POST form that targets https://example.com/detonate-bomb/ and
