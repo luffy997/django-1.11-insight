@@ -66,7 +66,7 @@ class ResolverMatch(object):
 def get_resolver(urlconf=None):
     if urlconf is None:
         from django.conf import settings
-        urlconf = settings.ROOT_URLCONF
+        urlconf = settings.ROOT_URLCONF # settings.ROOT_URLCONF 是 Django 项目的根 URL 配置模块。
     return RegexURLResolver(r'^/', urlconf)
 
 
@@ -79,10 +79,17 @@ def get_ns_resolver(ns_pattern, resolver):
     return RegexURLResolver(r'^/', [ns_resolver])
 
 
+''''
+RegexURLPattern: 单个URL模式，包含正则表达式和对应的视图函数
+RegexURLResolver: URL解析器，用于解析包含多个URL模式的URLconf
+ResolverMatch: URL匹配结果，包含匹配的视图函数、参数等信息
+'''
+
 class LocaleRegexDescriptor(object):
     def __get__(self, instance, cls=None):
         """
         Return a compiled regular expression based on the active language.
+        返回一个编译后的正则表达式，根据当前的语言代码。
         """
         if instance is None:
             return self
@@ -114,6 +121,7 @@ class LocaleRegexProvider(object):
     """
     A mixin to provide a default regex property which can vary by active
     language.
+    一个混入，提供一个默认的regex属性，可以根据当前的语言代码变化。
     """
     def __init__(self, regex):
         # regex is either a string representing a regular expression, or a
@@ -224,6 +232,8 @@ class RegexURLResolver(LocaleRegexProvider):
         # urlconf_name is the dotted Python path to the module defining
         # urlpatterns. It may also be an object with an urlpatterns attribute
         # or urlpatterns itself.
+        # urlconf_name 是定义 urlpatterns 的 Python 路径。
+        # 它也可以是一个具有 urlpatterns 属性的对象，或者 urlpatterns 本身。
         self.urlconf_name = urlconf_name
         self.callback = None
         self.default_kwargs = default_kwargs or {}
@@ -354,10 +364,15 @@ class RegexURLResolver(LocaleRegexProvider):
         return name in self._callback_strs
 
     def resolve(self, path):
+        """
+        路由匹配算法
+        """
         path = force_text(path)  # path may be a reverse_lazy object
         tried = []
+        # 使用正则匹配path
         match = self.regex.search(path)
         if match:
+            # 找到匹配的path，然后截取，获取剩余路径，剩余路径继续匹配
             new_path = path[match.end():]
             for pattern in self.url_patterns:
                 try:
@@ -371,7 +386,9 @@ class RegexURLResolver(LocaleRegexProvider):
                 else:
                     if sub_match:
                         # Merge captured arguments in match with submatch
+                        # match.groupdict()就是正则表达式中捕获的参数，比如user_id:1
                         sub_match_dict = dict(match.groupdict(), **self.default_kwargs)
+                        # 合并所有层级的解析参数
                         sub_match_dict.update(sub_match.kwargs)
 
                         # If there are *any* named groups, ignore all non-named groups.
