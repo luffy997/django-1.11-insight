@@ -147,8 +147,8 @@ class ConnectionHandler(object):
         databases is an optional dictionary of database definitions (structured
         like settings.DATABASES).
         """
-        self._databases = databases
-        self._connections = local()
+        self._databases = databases # 配置字典，通常是settings.DATABASES
+        self._connections = local() # 线程本地缓存（每个线程有自己的连接对象，保证线程安全）
 
     @cached_property
     def databases(self):
@@ -208,9 +208,9 @@ class ConnectionHandler(object):
         self.ensure_defaults(alias)
         self.prepare_test_settings(alias)
         db = self.databases[alias]
-        backend = load_backend(db['ENGINE'])
+        backend = load_backend(db['ENGINE'])  # 核心实现：根据路径字符串导包
         conn = backend.DatabaseWrapper(db, alias)
-        setattr(self._connections, alias, conn)
+        setattr(self._connections, alias, conn)  # 每个线程都有自己的链接，互不干扰
         return conn
 
     def __setitem__(self, key, value):
@@ -233,6 +233,12 @@ class ConnectionHandler(object):
                 continue
             connection.close()
 
+"""
+获取数据库连接
+from django.db import connections
+conn = connections['default']  # 获取默认数据库连接
+cursor = conn.cursor()         # 获取游标，执行SQL
+"""
 
 class ConnectionRouter(object):
     def __init__(self, routers=None):
@@ -240,9 +246,12 @@ class ConnectionRouter(object):
         If routers is not specified, will default to settings.DATABASE_ROUTERS.
         """
         self._routers = routers
+        # 它支持多数据库场景下的读写分离、分库分表、迁移控制等高级用法。
+        # 指定哪些model的操作在哪个表，哪些model可以迁移，
 
     @cached_property
     def routers(self):
+        # DATABASE_ROUTERS 将用于确定哪个数据库的路由器列表在执行数据库查询时使用。
         if self._routers is None:
             self._routers = settings.DATABASE_ROUTERS
         routers = []
