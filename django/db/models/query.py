@@ -42,6 +42,7 @@ class BaseIterable(object):
 class ModelIterable(BaseIterable):
     """
     Iterable that yields a model instance for each row.
+    为每一行生成一个模型实例
     """
 
     def __iter__(self):
@@ -50,20 +51,23 @@ class ModelIterable(BaseIterable):
         compiler = queryset.query.get_compiler(using=db)
         # Execute the query. This will also fill compiler.select, klass_info,
         # and annotations.
-        results = compiler.execute_sql(chunked_fetch=self.chunked_fetch)
+        results = compiler.execute_sql(chunked_fetch=self.chunked_fetch) # 真正的访问数据库
         select, klass_info, annotation_col_map = (compiler.select, compiler.klass_info,
-                                                  compiler.annotation_col_map)
+                                                  compiler.annotation_col_map) # 获取选择字段、类信息
         model_cls = klass_info['model']
         select_fields = klass_info['select_fields']
         model_fields_start, model_fields_end = select_fields[0], select_fields[-1] + 1
         init_list = [f[0].target.attname
                      for f in select[model_fields_start:model_fields_end]]
         related_populators = get_related_populators(klass_info, select, db)
+        # 遍历结果，生成模型实例
         for row in compiler.results_iter(results):
             obj = model_cls.from_db(db, init_list, row[model_fields_start:model_fields_end])
+            # 填充关联对象
             if related_populators:
                 for rel_populator in related_populators:
                     rel_populator.populate(row, obj)
+            # 填充注解
             if annotation_col_map:
                 for attr_name, col_pos in annotation_col_map.items():
                     setattr(obj, attr_name, row[col_pos])
@@ -82,7 +86,7 @@ class ModelIterable(BaseIterable):
                     else:
                         setattr(obj, field.name, rel_obj)
 
-            yield obj
+            yield obj # 生成器模式，逐个返回对象，不会一次性放在内存里
 
 
 class ValuesIterable(BaseIterable):
@@ -163,7 +167,7 @@ class QuerySet(object):
         self._db = using
         self._hints = hints or {}
         self.query = query or sql.Query(self.model)
-        self._result_cache = None
+        self._result_cache = None  # 结果缓存初始为 None，懒加载的关键点
         self._sticky_filter = False
         self._for_write = False
         self._prefetch_related_lookups = ()
@@ -236,16 +240,20 @@ class QuerySet(object):
         """
         The queryset iterator protocol uses three nested iterators in the
         default case:
+        # 默认情况下，QuerySet 的迭代器协议使用三个嵌套的迭代器：
             1. sql.compiler:execute_sql()
                - Returns 100 rows at time (constants.GET_ITERATOR_CHUNK_SIZE)
                  using cursor.fetchmany(). This part is responsible for
                  doing some column masking, and returning the rows in chunks.
+                 # 每次返回 100 行数据，使用 cursor.fetchmany() 实现
             2. sql/compiler.results_iter()
                - Returns one row at time. At this point the rows are still just
                  tuples. In some cases the return values are converted to
                  Python values at this location.
+                 # 将行数据转换为 Python 值
             3. self.iterator()
                - Responsible for turning the rows into model objects.
+
         """
         self._fetch_all()
         return iter(self._result_cache)
@@ -268,6 +276,7 @@ class QuerySet(object):
                  (k.stop is None or k.stop >= 0))), \
             "Negative indexing is not supported."
 
+        # 如果结果缓存不为空，则直接返回结果缓存中的数据    
         if self._result_cache is not None:
             return self._result_cache[k]
 
@@ -282,6 +291,7 @@ class QuerySet(object):
             else:
                 stop = None
             qs.query.set_limits(start, stop)
+            # 如果是切片且没有缓存，创建新的qs，但不执行查询，仍然惰性
             return list(qs)[::k.step] if k.step else qs
 
         qs = self._clone()
@@ -356,6 +366,7 @@ class QuerySet(object):
 
         If the QuerySet is already fully cached this simply returns the length
         of the cached results set to avoid multiple SELECT COUNT(*) calls.
+        # 如果结果缓存不为空，则直接返回结果缓存中的数据，避免重复查询
         """
         if self._result_cache is not None:
             return len(self._result_cache)
@@ -366,6 +377,7 @@ class QuerySet(object):
         """
         Performs the query and returns a single object matching the given
         keyword arguments.
+        执行查询，返回单个对象
         """
         clone = self.filter(*args, **kwargs)
         if self.query.can_filter() and not self.query.distinct_fields:
@@ -433,7 +445,7 @@ class QuerySet(object):
         fields = self.model._meta.concrete_fields
         objs = list(objs)
         self._populate_pk_values(objs)
-        with transaction.atomic(using=self.db, savepoint=False):
+        with transaction.atomic(using=self.db, savepoint=False):  # 事物里面执行的
             objs_with_pk, objs_without_pk = partition(lambda o: o.pk is None, objs)
             if objs_with_pk:
                 self._batched_insert(objs_with_pk, fields, batch_size)
@@ -474,7 +486,7 @@ class QuerySet(object):
         defaults = defaults or {}
         lookup, params = self._extract_model_params(defaults, **kwargs)
         self._for_write = True
-        with transaction.atomic(using=self.db):
+        with transaction.atomic(using=self.db):  # 事务里面执行的
             try:
                 obj = self.select_for_update().get(**lookup)
             except self.model.DoesNotExist:
@@ -536,6 +548,7 @@ class QuerySet(object):
         """
         Returns the latest object, according to the model's
         'get_latest_by' option or optional given field_name.
+        返回最早或最新的对象
         """
         order_by = field_name or getattr(self.model._meta, 'get_latest_by')
         assert bool(order_by), "earliest() and latest() require either a "\
@@ -721,6 +734,7 @@ class QuerySet(object):
         """
         Returns a list of date objects representing all available dates for
         the given field_name, scoped to 'kind'.
+        返回给定字段名的所有可用日期，范围为 'kind'
         """
         assert kind in ("year", "month", "day"), \
             "'kind' must be one of 'year', 'month' or 'day'."
@@ -1098,7 +1112,10 @@ class QuerySet(object):
         return clone
 
     def _fetch_all(self):
-        if self._result_cache is None:
+        # 如果结果缓存为空，则调用 _iterable_class 的 __iter__ 方法，
+        # 返回一个迭代器，然后使用 list() 将迭代器转换为列表，
+        # 并将结果缓存到 self._result_cache 中
+        if self._result_cache is None:  # 缓存为空才执行查询
             self._result_cache = list(self._iterable_class(self))
         if self._prefetch_related_lookups and not self._prefetch_done:
             self._prefetch_related_objects()
@@ -1639,6 +1656,7 @@ def prefetch_one_level(instances, prefetcher, lookup, level):
 class RelatedPopulator(object):
     """
     RelatedPopulator is used for select_related() object instantiation.
+    关联对象填充器，用于 select_related() 对象实例化
 
     The idea is that each select_related() model will be populated by a
     different RelatedPopulator instance. The RelatedPopulator instances get
@@ -1727,6 +1745,7 @@ class RelatedPopulator(object):
             obj = self.model_cls.from_db(self.db, self.init_list, obj_data)
         if obj and self.related_populators:
             for rel_iter in self.related_populators:
+                # 递归填充关联对象
                 rel_iter.populate(row, obj)
         setattr(from_obj, self.cache_name, obj)
         if obj and self.reverse_cache_name:

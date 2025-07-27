@@ -211,6 +211,7 @@ class Field(RegisterLookupMixin):
         return '<%s>' % path
 
     def check(self, **kwargs):
+        # 这个写法好秀
         errors = []
         errors.extend(self._check_field_name())
         errors.extend(self._check_choices())
@@ -221,8 +222,11 @@ class Field(RegisterLookupMixin):
         return errors
 
     def _check_field_name(self):
-        """ Check if field name is valid, i.e. 1) does not end with an
-        underscore, 2) does not contain "__" and 3) is not "pk". """
+        """ 
+        Check if field name is valid, i.e. 1) does not end with an
+        underscore, 2) does not contain "__" and 3) is not "pk". 
+        检查字段名是否符合规范：1. 不以_结尾，2. 不包含__，3. 不是pk
+        """
 
         if self.name.endswith('_'):
             return [
@@ -300,9 +304,10 @@ class Field(RegisterLookupMixin):
     def _check_null_allowed_for_primary_keys(self):
         if (self.primary_key and self.null and
                 not connection.features.interprets_empty_strings_as_nulls):
-            # We cannot reliably check this for backends like Oracle which
+            # We cannot reliably(可靠地) check this for backends like Oracle which
             # consider NULL and '' to be equal (and thus set up
-            # character-based fields a little differently).
+            # character-based fields a little differently). 
+            # 对于Oracle这样的后端，NULL和''是相等的，所以不能可靠地检查
             return [
                 checks.Error(
                     'Primary keys must not have null=True.',
@@ -410,8 +415,8 @@ class Field(RegisterLookupMixin):
             "null": False,
             "db_index": False,
             "default": NOT_PROVIDED,
-            "editable": True,
-            "serialize": True,
+            "editable": True,  # editable=True/False 决定这个字段在 Django admin 后台或 ModelForm 表单中是否可编辑。
+            "serialize": True,  # serialize=True/False 决定这个字段在序列化时是否被包含。
             "unique_for_date": None,
             "unique_for_month": None,
             "unique_for_year": None,
@@ -443,6 +448,7 @@ class Field(RegisterLookupMixin):
                 if value is not default:
                     keywords[name] = value
         # Work out path - we shorten it for known Django core fields
+        # 获取字段的路径-我们缩短了已知Django核心字段的路径
         path = "%s.%s" % (self.__class__.__module__, self.__class__.__name__)
         if path.startswith("django.db.models.fields.related"):
             path = path.replace("django.db.models.fields.related", "django.db.models")
@@ -476,6 +482,7 @@ class Field(RegisterLookupMixin):
 
     def __lt__(self, other):
         # This is needed because bisect does not take a comparison function.
+        # bisect 是 Python 标准库中的一个模块，用于在排序后的列表中进行二分查找。
         if isinstance(other, Field):
             return self.creation_counter < other.creation_counter
         return NotImplemented
@@ -507,6 +514,8 @@ class Field(RegisterLookupMixin):
         Pickling should return the model._meta.fields instance of the field,
         not a new copy of that field. So, we use the app registry to load the
         model and then the field back.
+        # 序列化时返回模型_meta.fields实例，而不是新复制一个字段。
+        # 所以我们使用应用注册表来加载模型，然后加载字段。
         """
         if not hasattr(self, 'model'):
             # Fields are sometimes used without attaching them to models (for
@@ -534,6 +543,8 @@ class Field(RegisterLookupMixin):
         Converts the input value into the expected Python data type, raising
         django.core.exceptions.ValidationError if the data can't be converted.
         Returns the converted value. Subclasses should override this.
+        # 将输入值转换为期望的Python数据类型，如果数据不能转换，则抛出django.core.exceptions.ValidationError。
+        # 返回转换后的值。子类应该重写这个方法。
         """
         return value
 
@@ -542,6 +553,8 @@ class Field(RegisterLookupMixin):
         """
         Some validators can't be created at field initialization time.
         This method provides a way to delay their creation until required.
+        # 有些验证器不能在字段初始化时创建。
+        # 这个方法提供了一种延迟它们创建直到需要的方法。
         """
         return list(itertools.chain(self.default_validators, self._validators))
 
@@ -565,6 +578,7 @@ class Field(RegisterLookupMixin):
         """
         Validates value and throws ValidationError. Subclasses should override
         this to provide validation logic.
+        # 验证值并抛出ValidationError。子类应该重写这个方法来提供验证逻辑。
         """
         if not self.editable:
             # Skip validation for non-editable fields.

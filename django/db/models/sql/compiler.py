@@ -42,6 +42,8 @@ class SQLCompiler(object):
         Does any necessary class setup immediately prior to producing SQL. This
         is for things that can't necessarily be done in __init__ because we
         might not have all the pieces in place at that time.
+        做一些准备工作，比如设置查询、获取排序、分组等
+        这些准备工作在 __init__ 中无法完成，因为有些信息在那时还不完整
         """
         self.setup_query()
         order_by = self.get_order_by()
@@ -57,6 +59,11 @@ class SQLCompiler(object):
         The logic of what exactly the GROUP BY clause contains is hard
         to describe in other words than "if it passes the test suite,
         then it is correct".
+        返回一个列表，每个元素是一个二元组，表示一个 GROUP BY 子句
+        每个二元组包含两个元素：
+        1. 一个 SQL 表达式，表示要分组的列
+        2. 一个参数列表，表示要分组的值
+        
         """
         # Some examples:
         #     SomeModel.objects.annotate(Count('somecol'))
@@ -168,6 +175,10 @@ class SQLCompiler(object):
         - a list of 3-tuples of (expression, (sql, params), alias)
         - a klass_info structure,
         - a dictionary of annotations
+        返回三个值：
+        1. 一个列表，每个元素是一个三元组，表示一个选择字段
+        2. 一个字典，表示类信息
+        3. 一个字典，表示注解
 
         The (sql, params) is what the expression will produce, and alias is the
         "AS alias" for the column (possibly None).
@@ -403,10 +414,12 @@ class SQLCompiler(object):
         """
         Creates the SQL for this query. Returns the SQL string and list of
         parameters.
+        返回 SQL 字符串和参数列表
 
         If 'with_limits' is False, any limit/offset information is not included
         in the query.
         """
+        # 1.准备工作
         refcounts_before = self.query.alias_refcount.copy()
         try:
             extra_select, order_by, group_by = self.pre_sql_setup()
@@ -414,12 +427,15 @@ class SQLCompiler(object):
 
             # This must come after 'select', 'ordering', and 'distinct' -- see
             # docstring of get_from_clause() for details.
+            # 2. 获取 FROM 子句，包括表名和参数（必须在select、ordering、distinct之后）
             from_, f_params = self.get_from_clause()
 
             for_update_part = None
+            # 3. 编译where having
             where, w_params = self.compile(self.where) if self.where is not None else ("", [])
             having, h_params = self.compile(self.having) if self.having is not None else ("", [])
 
+            # 4.处理集合操作（UNION、INTERSECT、EXCEPT）
             combinator = self.query.combinator
             features = self.connection.features
             if combinator:
@@ -427,12 +443,15 @@ class SQLCompiler(object):
                     raise DatabaseError('{} not supported on this database backend.'.format(combinator))
                 result, params = self.get_combinator_sql(combinator, self.query.combinator_all)
             else:
+                # 5. 处理普通查询
                 result = ['SELECT']
                 params = []
 
+                # 6. 处理 DISTINCT 子句
                 if self.query.distinct:
                     result.append(self.connection.ops.distinct_sql(distinct_fields))
 
+                # 7. 处理 SELECT 子句
                 out_cols = []
                 col_idx = 1
                 for _, (s_sql, s_params), alias in self.select + extra_select:
@@ -446,6 +465,7 @@ class SQLCompiler(object):
 
                 result.append(', '.join(out_cols))
 
+                # 8. 处理 FROM 子句
                 result.append('FROM')
                 result.extend(from_)
                 params.extend(f_params)
@@ -468,10 +488,12 @@ class SQLCompiler(object):
                 if for_update_part and self.connection.features.for_update_after_from:
                     result.append(for_update_part)
 
+                # 9. 处理 WHERE 子句
                 if where:
                     result.append('WHERE %s' % where)
                     params.extend(w_params)
 
+                # 10. 处理 GROUP BY 子句
                 grouping = []
                 for g_sql, g_params in group_by:
                     grouping.append(g_sql)
@@ -483,10 +505,12 @@ class SQLCompiler(object):
                         order_by = self.connection.ops.force_no_ordering()
                     result.append('GROUP BY %s' % ', '.join(grouping))
 
+                # 11. 处理 HAVING 子句
                 if having:
                     result.append('HAVING %s' % having)
                     params.extend(h_params)
 
+            # 12. 处理 ORDER BY 子句
             if order_by:
                 ordering = []
                 for _, (o_sql, o_params, _) in order_by:
@@ -494,6 +518,7 @@ class SQLCompiler(object):
                     params.extend(o_params)
                 result.append('ORDER BY %s' % ', '.join(ordering))
 
+            # 13. 处理 LIMIT 和 OFFSET 子句
             if with_limits:
                 if self.query.high_mark is not None:
                     result.append('LIMIT %d' % (self.query.high_mark - self.query.low_mark))
