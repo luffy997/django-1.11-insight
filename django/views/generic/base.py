@@ -29,6 +29,7 @@ class View(object):
     """
     Intentionally simple parent class for all views. Only implements
     dispatch-by-method and simple sanity checking.
+    故意为所有视图简化父类，只实现分发和简单的健全性检查
     """
 
     http_method_names = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
@@ -49,24 +50,26 @@ class View(object):
         Main entry point for a request-response process.
         """
         for key in initkwargs:
+            # 检查是否是http方法名，比如get=‘‘xxxx’’
             if key in cls.http_method_names:
                 raise TypeError("You tried to pass in the %s method name as a "
                                 "keyword argument to %s(). Don't do that."
                                 % (key, cls.__name__))
+            # 检查是否是cls的属性，比如name=‘‘xxxx’’，但是cls没有name属性，就会报错
             if not hasattr(cls, key):
                 raise TypeError("%s() received an invalid keyword %r. as_view "
                                 "only accepts arguments that are already "
                                 "attributes of the class." % (cls.__name__, key))
 
         def view(request, *args, **kwargs):
-            self = cls(**initkwargs)
+            self = cls(**initkwargs)  # 创建视图实例
             if hasattr(self, 'get') and not hasattr(self, 'head'):
                 self.head = self.get
             self.request = request
             self.args = args
             self.kwargs = kwargs
-            return self.dispatch(request, *args, **kwargs)
-        view.view_class = cls
+            return self.dispatch(request, *args, **kwargs)  # 分发到具体的接口方法
+        view.view_class = cls  # 保存原始类引用
         view.view_initkwargs = initkwargs
 
         # take name and docstring from class
