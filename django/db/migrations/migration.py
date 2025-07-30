@@ -97,9 +97,11 @@ class Migration(object):
         Takes a project_state representing all migrations prior to this one
         and a schema_editor for a live database and applies the migration
         in a forwards order.
+        获取一个project_state，然后应用这个migration的operations，返回一个新的project_state
 
         Returns the resulting project state for efficient re-use by following
         Migrations.
+        返回一个project_state，这个project_state是应用了当前migration的operations之后的
         """
         for operation in self.operations:
             # If this operation cannot be represented as SQL, place a comment
@@ -134,13 +136,16 @@ class Migration(object):
         Takes a project_state representing all migrations prior to this one
         and a schema_editor for a live database and applies the migration
         in a reverse order.
+        获取一个project_state，然后应用这个migration的operations的逆向操作，返回一个新的project_state
 
         The backwards migration process consists of two phases:
-
+        逆向迁移过程分为两个阶段：
         1. The intermediate states from right before the first until right
            after the last operation inside this migration are preserved.
+           1. 从第一个操作之前到最后一个操作之后的中间状态被保留。
         2. The operations are applied in reverse order using the states
            recorded in step 1.
+           2. 使用步骤1中记录的状态，以相反的顺序应用操作。
         """
         # Construct all the intermediate states we need for a reverse migration
         to_run = []
